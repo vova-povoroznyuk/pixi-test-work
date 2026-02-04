@@ -1,29 +1,16 @@
 import { App } from "./core/App";
 import { Scene } from "./core/Scene";
 
+import { PortController } from "./core/PortController";
+
 const app = new App();
 const scene = new Scene();
-let uiCounter = 0;
 
+const port = new PortController(scene);
+port.start();
 window.addEventListener("DOMContentLoaded", async () => {
   await app.init();
-  if (app.app) {
-    app.app.stage.addChild(scene.root);
+  if (!app.app) return;
 
-    const addBtn = document.getElementById("add-ship");
-    const removeBtn = document.getElementById("remove-ship");
-
-    addBtn?.addEventListener("click", () => {
-      const id = `ui-${Date.now()}-${uiCounter++}`;
-      const color = Math.random() < 0.5 ? 0xff3333 : 0x33ff66;
-      scene.shipManager.addShipToScene(scene, id, color);
-    });
-
-    removeBtn?.addEventListener("click", () => {
-      const keys = Object.keys(scene.shipManager.ships);
-      if (keys.length === 0) return;
-      const last = keys[keys.length - 1];
-      scene.shipManager.removeShipFromScene(scene, last);
-    });
-  }
+  app.app.stage.addChild(scene.root);
 });
