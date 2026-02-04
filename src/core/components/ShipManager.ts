@@ -7,7 +7,7 @@ import {
   EMPTY_SHIP_COLOR,
   CARGO_SHIP_COLOR,
 } from "../constans";
-import type { Vec2, EasingType, SceneLike, ShipType } from "../types";
+import type { Vec2, SceneLike, ShipType } from "../types";
 
 export class ShipManager {
   ships = new Map<string, Ship>();
@@ -33,16 +33,14 @@ export class ShipManager {
   async moveShip(
     shipId: string | null,
     points: Vec2[],
-    durationMs = 1000,
-    easing: EasingType = "quadInOut",
+    speed: number,
   ): Promise<void> {
     if (!shipId) return;
     const ship = this.ships.get(shipId);
     if (!ship) return;
     await ship.move({
       points,
-      durationMs,
-      easing,
+      speed,
     });
   }
   toggleCargo(shipId: string): void {

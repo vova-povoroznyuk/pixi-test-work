@@ -77,13 +77,14 @@ export class Dock {
     this.isShipReady = false;
   }
 
-  startLoading(toggleShip: () => void) {
+  startLoading(toggleShip: () => void, callTrigger: () => void) {
     this.isLoading = true;
 
     setTimeout(() => {
       this.isCargo = !this.isCargo;
       this.isShipReady = true;
       toggleShip();
+      callTrigger();
       this.isLoading = false;
     }, DOCK_LOADING_TIME);
   }

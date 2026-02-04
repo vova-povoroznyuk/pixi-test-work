@@ -1,5 +1,4 @@
 import type { Vec2, DequeueExitResult } from "../types";
-import { START_PORT_X, START_PORT_Y, SHIP_WIDTH } from "../constans";
 
 export class QueueController {
   basePos: Vec2;
@@ -33,9 +32,7 @@ export class QueueController {
 
     if (!shipId) return null;
 
-    const route: [Vec2] = [{ x: START_PORT_X + SHIP_WIDTH, y: START_PORT_Y }];
-
-    return { shipId: shipId, fromSlotIndex: 0, route };
+    return { shipId: shipId };
   }
   deleteFirst() {
     this.slots.shift();

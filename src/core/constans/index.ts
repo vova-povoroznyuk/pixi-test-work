@@ -21,7 +21,7 @@ export const SHIP_HALF_HEIGHT = SHIP_HEIGHT / 2;
 export const START_PORT_X = PORT_WIDTH;
 export const START_PORT_Y = SCREEN_H / 2 - SHIP_HALF_HEIGHT;
 
-export const PORT_WALL_HEIGHT = 230;
+export const PORT_WALL_HEIGHT = 200;
 
 export const DOCK_STROKE_WIDTH = 3;
 
@@ -36,5 +36,8 @@ export const SEA_COLOR = 0x4d35ff;
 export const EMPTY_SHIP_COLOR = 0x33ff66;
 export const CARGO_SHIP_COLOR = 0xff3333;
 
-export const SPAWN_INTERVAL = 1000;
+export const SPAWN_INTERVAL = 2000;
 export const DOCK_LOADING_TIME = 3000;
+
+export const SHIP_MOVE_DURATION = 650;
+export const SHIP_QUEUE_SPEED = 100;

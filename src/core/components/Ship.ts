@@ -42,22 +42,16 @@ export class Ship {
   detach() {
     this.ship.parent?.removeChild(this.ship);
   }
-
   async move(traj: Trajectory): Promise<void> {
     if (this.moving) return;
     this.moving = true;
 
-    const easing =
-      traj.easing === "quadOut"
-        ? tweenManager.easing.Quadratic.Out
-        : tweenManager.easing.Quadratic.InOut;
-
-    const runSegment = (to: Vec2, durationMs: number) =>
-      new Promise<void>((resolve) => {
+    const runSegment = (to: Vec2, duration: number) => {
+      return new Promise<void>((resolve) => {
         const tw = tweenManager
           .tween(this.pos)
-          .to({ x: to.x, y: to.y }, durationMs)
-          .easing(easing)
+          .to({ x: to.x, y: to.y }, duration)
+          .easing(tweenManager.easing.Linear.None)
           .onUpdate(() => {
             if (this.destroyed) return;
             this.ship.position.set(this.pos.x, this.pos.y);
@@ -70,6 +64,7 @@ export class Ship {
         this.activeTween = tw;
         tw.start();
       });
+    };
 
     const pts = traj.points;
     if (!pts || pts.length === 0) {
@@ -77,8 +72,9 @@ export class Ship {
       return;
     }
     const segCount = pts.length;
-    const segDur = Math.max(1, Math.floor(traj.durationMs / segCount));
+    const segDur = Math.max(1, Math.floor(traj.speed / segCount));
     this.ship.position.set(this.pos.x, this.pos.y);
+
     await runSegment(pts[0], segDur);
     for (let i = 0; i < pts.length - 1; i++) {
       await runSegment(pts[i + 1], segDur);

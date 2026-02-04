@@ -4,7 +4,7 @@ export type Vec2 = { x: number; y: number };
 
 export type Trajectory = {
   points: Vec2[];
-  durationMs: number;
+  speed: number;
   easing?: "quadOut" | "quadInOut";
 };
 
@@ -18,6 +18,4 @@ export type EasingType = "quadOut" | "quadInOut";
 
 export type DequeueExitResult = {
   shipId: string;
-  fromSlotIndex: number;
-  route: [Vec2];
 } | null;

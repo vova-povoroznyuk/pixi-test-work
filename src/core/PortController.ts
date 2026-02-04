@@ -4,7 +4,15 @@ import { createDocks } from "./components/dockFactory";
 import { createCargoQueue, createEmptyQueue } from "./components/queueFactory";
 import { pickDockForEnter, pickQueueForDock } from "./components/portPolicy";
 import type { MoveUpdate, SceneLike, ShipType } from "./types";
-import { SCREEN_W, SHIP_WIDTH, START_PORT_Y, SPAWN_INTERVAL } from "./constans";
+import {
+  SCREEN_W,
+  SHIP_WIDTH,
+  START_PORT_Y,
+  SPAWN_INTERVAL,
+  START_PORT_X,
+  SHIP_MOVE_DURATION,
+  SHIP_QUEUE_SPEED,
+} from "./constans";
 
 export class PortController {
   private docs: Dock[] = [];
@@ -16,6 +24,9 @@ export class PortController {
   private emptyShipQueueController = createEmptyQueue();
   private shipManager = new ShipManager();
   private scene: SceneLike;
+  private running = false;
+  private pending = false;
+  private entranceBusy = false;
 
   constructor(scene: SceneLike) {
     this.scene = scene;
@@ -23,7 +34,6 @@ export class PortController {
   }
 
   start() {
-    this.startDispatchLoop();
     this.startSpawnLoop();
   }
 
@@ -34,26 +44,11 @@ export class PortController {
     this.exitTimerId = null;
   }
 
-  private startDispatchLoop() {
-    this.exitTimerId = window.setInterval(() => this.dispatchOnce(), 1000);
-  }
-
   private startSpawnLoop() {
     this.spawnTimerId = window.setInterval(
       () => this.spawnOnce(),
       SPAWN_INTERVAL,
     );
-  }
-
-  private async dispatchOnce() {
-    const docToExit = this.getReadyToExitDocs()[0];
-    if (docToExit) {
-      this.dispatchExit(docToExit);
-      return;
-    }
-    const emptyDocs = this.getEmptyDocs();
-    if (!emptyDocs.length) return;
-    this.dispatchEnter(emptyDocs);
   }
 
   private async dispatchExit(doc: Dock) {
@@ -66,19 +61,27 @@ export class PortController {
     const routeToExit = doc.getRoute().slice().reverse();
     await this.shipManager.moveShip(
       shipId,
-      [...routeToExit, { x: SCREEN_W + SHIP_WIDTH, y: START_PORT_Y }],
-      1400,
-      "quadInOut",
+      [...routeToExit, { x: START_PORT_X + SHIP_WIDTH, y: START_PORT_Y }],
+      SHIP_MOVE_DURATION,
     );
-    this.shipManager.destroyShip(shipId);
+
+    this.trigger();
+    this.shipManager
+      .moveShip(
+        shipId,
+        [{ x: SCREEN_W + SHIP_WIDTH, y: START_PORT_Y }],
+        SHIP_MOVE_DURATION,
+      )
+      .then(() => this.shipManager.destroyShip(shipId));
   }
 
   private async dispatchEnter(emptyDocs: Dock[]) {
+    if (this.entranceBusy) return false;
     const hasEmptyShips = this.emptyShipQueueController.getSlots().length > 0;
     const hasCargoShips = this.cargoShipQueueController.getSlots().length > 0;
 
     const dock = pickDockForEnter(emptyDocs, hasEmptyShips, hasCargoShips);
-    if (!dock) return;
+    if (!dock) return false;
 
     const queue = pickQueueForDock(
       dock,
@@ -86,21 +89,23 @@ export class PortController {
       this.cargoShipQueueController,
     );
     const res = queue.dequeueWithExit();
-    if (!res) return;
+    if (!res) return false;
 
     dock.setShipId(res.shipId);
-
-    await this.shipManager
-      .moveShip(
-        res.shipId,
-        [...res.route, ...dock.getRoute()],
-        1400,
-        "quadInOut",
-      )
+    this.entranceBusy = true;
+    this.shipManager
+      .moveShip(res.shipId, [...dock.getRoute()], SHIP_MOVE_DURATION)
       .then(() => {
-        dock.startLoading(() => this.shipManager.toggleCargo(res.shipId));
+        this.entranceBusy = false;
+
+        dock.startLoading(
+          () => this.shipManager.toggleCargo(res.shipId),
+          () => this.trigger(),
+        );
       });
+    this.trigger();
     this.applyQueueUpdates(queue.updateQueue());
+    return false;
   }
 
   private async spawnOnce() {
@@ -117,13 +122,16 @@ export class PortController {
     const res = queue.assign(shipId);
     if (!res) return;
 
-    await this.shipManager.moveShip(shipId, [res.target], SCREEN_W, "quadOut");
+    await this.shipManager.moveShip(shipId, [res.target], SHIP_MOVE_DURATION);
+    this.trigger();
   }
 
   private applyQueueUpdates(updates: MoveUpdate[]) {
     for (const { shipId, target } of updates) {
       if (!shipId) continue;
-      this.shipManager.moveShip(shipId, [target], 600, "quadOut");
+      this.shipManager.moveShip(shipId, [target], SHIP_QUEUE_SPEED).then(() => {
+        this.trigger();
+      });
     }
   }
 
@@ -137,5 +145,38 @@ export class PortController {
 
   private makeShipId(type: ShipType) {
     return `${type}-${Date.now()}-${this.counter++}`;
+  }
+  private trigger() {
+    this.pending = true;
+    if (!this.running) void this.run();
+  }
+
+  private async run(): Promise<void> {
+    this.running = true;
+    this.pending = false;
+
+    const didWork = await this.stepOne();
+
+    if (didWork) {
+      return this.run();
+    }
+
+    this.running = false;
+    if (this.pending) {
+      return this.run();
+    }
+  }
+  private async stepOne(): Promise<boolean> {
+    if (this.entranceBusy) return false;
+    const docToExit = this.getReadyToExitDocs()[0];
+    if (docToExit) {
+      await this.dispatchExit(docToExit);
+      return true;
+    }
+
+    const emptyDocs = this.getEmptyDocs();
+    if (!emptyDocs.length) return false;
+
+    return await this.dispatchEnter(emptyDocs);
   }
 }
