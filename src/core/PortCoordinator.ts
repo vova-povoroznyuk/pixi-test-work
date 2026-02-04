@@ -1,6 +1,6 @@
 import { Dock } from "./components/Dock";
 import { ShipService } from "./components/ShipService";
-import { createDocks } from "./components/DockFactory1";
+import { createDocks } from "./components/DockViewFactory";
 import {
   createCargoQueue,
   createEmptyQueue,
