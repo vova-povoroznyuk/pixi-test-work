@@ -1,8 +1,14 @@
 import { Dock } from "./components/Dock";
-import { ShipManager } from "./components/ShipManager";
-import { createDocks } from "./components/dockFactory";
-import { createCargoQueue, createEmptyQueue } from "./components/queueFactory";
-import { pickDockForEnter, pickQueueForDock } from "./components/portPolicy";
+import { ShipService } from "./components/ShipService";
+import { createDocks } from "./components/DockFactory1";
+import {
+  createCargoQueue,
+  createEmptyQueue,
+} from "./components/ShipQueueFactory";
+import {
+  pickDockForEnter,
+  pickQueueForDock,
+} from "./components/DockAssignmentPolicy";
 import type { MoveUpdate, SceneLike, ShipType } from "./types";
 import {
   SCREEN_W,
@@ -22,7 +28,7 @@ export class PortController {
 
   private cargoShipQueueController = createCargoQueue();
   private emptyShipQueueController = createEmptyQueue();
-  private shipManager = new ShipManager();
+  private shipService = new ShipService();
   private scene: SceneLike;
   private running = false;
   private pending = false;
@@ -59,20 +65,20 @@ export class PortController {
     doc.setIsShipReady(false);
 
     const routeToExit = doc.getRoute().slice().reverse();
-    await this.shipManager.moveShip(
+    await this.shipService.moveShip(
       shipId,
       [...routeToExit, { x: START_PORT_X + SHIP_WIDTH, y: START_PORT_Y }],
       SHIP_MOVE_DURATION,
     );
 
     this.trigger();
-    this.shipManager
+    this.shipService
       .moveShip(
         shipId,
         [{ x: SCREEN_W + SHIP_WIDTH, y: START_PORT_Y }],
         SHIP_MOVE_DURATION,
       )
-      .then(() => this.shipManager.destroyShip(shipId));
+      .then(() => this.shipService.destroyShip(shipId));
   }
 
   private async dispatchEnter(emptyDocs: Dock[]) {
@@ -93,13 +99,13 @@ export class PortController {
 
     dock.setShipId(res.shipId);
     this.entranceBusy = true;
-    this.shipManager
+    this.shipService
       .moveShip(res.shipId, [...dock.getRoute()], SHIP_MOVE_DURATION)
       .then(() => {
         this.entranceBusy = false;
 
         dock.startLoading(
-          () => this.shipManager.toggleCargo(res.shipId),
+          () => this.shipService.toggleCargo(res.shipId),
           () => this.trigger(),
         );
       });
@@ -117,19 +123,19 @@ export class PortController {
         ? this.cargoShipQueueController
         : this.emptyShipQueueController;
 
-    this.shipManager.spawnShip(this.scene, shipId, type);
+    this.shipService.spawnShip(this.scene, shipId, type);
 
     const res = queue.assign(shipId);
     if (!res) return;
 
-    await this.shipManager.moveShip(shipId, [res.target], SHIP_MOVE_DURATION);
+    await this.shipService.moveShip(shipId, [res.target], SHIP_MOVE_DURATION);
     this.trigger();
   }
 
   private applyQueueUpdates(updates: MoveUpdate[]) {
     for (const { shipId, target } of updates) {
       if (!shipId) continue;
-      this.shipManager.moveShip(shipId, [target], SHIP_QUEUE_SPEED).then(() => {
+      this.shipService.moveShip(shipId, [target], SHIP_QUEUE_SPEED).then(() => {
         this.trigger();
       });
     }

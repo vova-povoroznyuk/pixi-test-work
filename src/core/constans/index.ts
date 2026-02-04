@@ -36,7 +36,7 @@ export const SEA_COLOR = 0x4d35ff;
 export const EMPTY_SHIP_COLOR = 0x33ff66;
 export const CARGO_SHIP_COLOR = 0xff3333;
 
-export const SPAWN_INTERVAL = 2000;
+export const SPAWN_INTERVAL = 8000;
 export const DOCK_LOADING_TIME = 3000;
 
 export const SHIP_MOVE_DURATION = 650;

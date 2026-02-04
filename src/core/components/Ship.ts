@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import type { ShipType, Trajectory, Vec2 } from "../types";
-import tweenManager from "../TweenManager";
+import TweenTicker from "../TweenTicker";
 import { SHIP_WIDTH, SHIP_HEIGHT, SHIP_STROKE_WIDTH } from "../constans";
 import type { Tween } from "@tweenjs/tween.js";
 
@@ -48,10 +48,9 @@ export class Ship {
 
     const runSegment = (to: Vec2, duration: number) => {
       return new Promise<void>((resolve) => {
-        const tw = tweenManager
-          .tween(this.pos)
+        const tw = TweenTicker.tween(this.pos)
           .to({ x: to.x, y: to.y }, duration)
-          .easing(tweenManager.easing.Linear.None)
+          .easing(TweenTicker.easing.Linear.None)
           .onUpdate(() => {
             if (this.destroyed) return;
             this.ship.position.set(this.pos.x, this.pos.y);

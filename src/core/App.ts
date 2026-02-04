@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import tweenManager from "./TweenManager";
+import TweenTicker from "./TweenTicker";
 import { SCREEN_H, SCREEN_W, SEA_COLOR } from "./constans";
 
 export class App {
@@ -16,6 +16,6 @@ export class App {
     });
 
     document.body.appendChild(this.app.canvas);
-    tweenManager.installTicker(this.app);
+    TweenTicker.installTicker(this.app);
   }
 }

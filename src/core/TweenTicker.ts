@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import { Group, Tween, Easing } from "@tweenjs/tween.js";
 
-class TweenManager {
+class TweenTicker {
   private installed = false;
   public readonly group = new Group();
   public readonly easing = Easing;
@@ -18,4 +18,4 @@ class TweenManager {
   }
 }
 
-export default new TweenManager();
+export default new TweenTicker();

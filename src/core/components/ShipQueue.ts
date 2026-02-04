@@ -1,6 +1,6 @@
 import type { Vec2, DequeueExitResult } from "../types";
 
-export class QueueController {
+export class ShipQueue {
   basePos: Vec2;
   step: Vec2;
   slots: Array<string | null>;

@@ -9,7 +9,7 @@ import {
 } from "../constans";
 import type { Vec2, SceneLike, ShipType } from "../types";
 
-export class ShipManager {
+export class ShipService {
   ships = new Map<string, Ship>();
 
   get(id: string): Ship | undefined {

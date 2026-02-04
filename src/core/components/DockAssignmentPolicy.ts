@@ -1,5 +1,5 @@
 import type { Dock } from "./Dock";
-import type { QueueController } from "./QueueController";
+import type { ShipQueue } from "./ShipQueue";
 
 export function pickDockForEnter(
   emptyDocs: Dock[],
@@ -20,8 +20,8 @@ export function pickDockForEnter(
 
 export function pickQueueForDock(
   dock: Dock,
-  emptyQueue: QueueController,
-  cargoQueue: QueueController,
+  emptyQueue: ShipQueue,
+  cargoQueue: ShipQueue,
 ) {
   return dock.getIsCargo() ? emptyQueue : cargoQueue;
 }
