@@ -127,7 +127,7 @@ export class PortController {
       shipId,
       [res.target],
       SHIP_MOVE_DURATION,
-      0,
+      1,
     );
     this.trigger();
   }
