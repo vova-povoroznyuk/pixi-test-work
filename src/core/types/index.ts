@@ -19,3 +19,5 @@ export type EasingType = "quadOut" | "quadInOut";
 export type DequeueExitResult = {
   shipId: string;
 } | null;
+
+export type MovePriority = 0 | 1;

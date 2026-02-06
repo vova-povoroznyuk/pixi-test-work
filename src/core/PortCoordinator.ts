@@ -64,6 +64,7 @@ export class PortController {
       shipId,
       [...routeToExit, { x: START_PORT_X + SHIP_WIDTH, y: START_PORT_Y }],
       SHIP_MOVE_DURATION,
+      1,
     );
     doc.setShipId(null);
 
@@ -73,6 +74,7 @@ export class PortController {
         shipId,
         [{ x: SCREEN_W + SHIP_WIDTH, y: START_PORT_Y }],
         SHIP_MOVE_DURATION,
+        0,
       )
       .then(() => this.shipService.destroyShip(shipId));
   }
@@ -92,7 +94,7 @@ export class PortController {
     if (!res) return false;
     this.entranceBusy = true;
     await this.shipService
-      .moveShip(res.shipId, [...dock.getRoute()], SHIP_MOVE_DURATION)
+      .moveShip(res.shipId, [...dock.getRoute()], SHIP_MOVE_DURATION, 1)
       .then(() => {
         this.entranceBusy = false;
         dock.setShipId(res.shipId);
@@ -121,16 +123,23 @@ export class PortController {
     const res = queue.assign(shipId);
     if (!res) return;
 
-    await this.shipService.moveShip(shipId, [res.target], SHIP_MOVE_DURATION);
+    await this.shipService.moveShip(
+      shipId,
+      [res.target],
+      SHIP_MOVE_DURATION,
+      0,
+    );
     this.trigger();
   }
 
   private applyQueueUpdates(updates: MoveUpdate[]) {
     for (const { shipId, target } of updates) {
       if (!shipId) continue;
-      this.shipService.moveShip(shipId, [target], SHIP_QUEUE_SPEED).then(() => {
-        this.trigger();
-      });
+      this.shipService
+        .moveShip(shipId, [target], SHIP_QUEUE_SPEED, 0)
+        .then(() => {
+          this.trigger();
+        });
     }
   }
 

@@ -7,7 +7,7 @@ import {
   EMPTY_SHIP_COLOR,
   CARGO_SHIP_COLOR,
 } from "../constans";
-import type { Vec2, SceneLike, ShipType } from "../types";
+import type { Vec2, SceneLike, ShipType, MovePriority } from "../types";
 
 export class ShipService {
   ships = new Map<string, Ship>();
@@ -34,6 +34,7 @@ export class ShipService {
     shipId: string | null,
     points: Vec2[],
     speed: number,
+    priority: MovePriority,
   ): Promise<void> {
     if (!shipId) return;
     const ship = this.ships.get(shipId);
@@ -41,6 +42,7 @@ export class ShipService {
     await ship.move({
       points,
       speed,
+      priority,
     });
   }
   toggleCargo(shipId: string): void {

@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import type { ShipType, Trajectory, Vec2 } from "../types";
+import type { ShipType, Trajectory, Vec2, MovePriority } from "../types";
 import TweenTicker from "../TweenTicker";
 import { SHIP_WIDTH, SHIP_HEIGHT, SHIP_STROKE_WIDTH } from "../constans";
 import type { Tween } from "@tweenjs/tween.js";
@@ -8,6 +8,7 @@ export class Ship {
   id: string;
   shipType: ShipType;
   private _isCargo: boolean;
+  private activePriority: MovePriority = 0;
 
   pos: Vec2;
   ship: PIXI.Graphics;
@@ -42,12 +43,29 @@ export class Ship {
   detach() {
     this.ship.parent?.removeChild(this.ship);
   }
-  async move(traj: Trajectory): Promise<void> {
-    if (this.moving) return;
+  async move(traj: Trajectory & { priority?: MovePriority }): Promise<void> {
+    const prio: MovePriority = traj.priority ?? 0;
+
+    if (this.moving && this.activePriority > prio) return;
+
+    if (this.moving && this.activeTween) {
+      this.activeTween.stop();
+      this.activeTween = null;
+    }
+
     this.moving = true;
+    this.activePriority = prio;
 
     const runSegment = (to: Vec2, duration: number) => {
       return new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          if (this.activeTween === tw) this.activeTween = null;
+          resolve();
+        };
+
         const tw = TweenTicker.tween(this.pos)
           .to({ x: to.x, y: to.y }, duration)
           .easing(TweenTicker.easing.Linear.None)
@@ -55,10 +73,9 @@ export class Ship {
             if (this.destroyed) return;
             this.ship.position.set(this.pos.x, this.pos.y);
           })
-          .onComplete(() => {
-            if (this.activeTween === tw) this.activeTween = null;
-            resolve();
-          });
+          .onComplete(finish);
+
+        (tw as any).onStop?.(finish);
 
         this.activeTween = tw;
         tw.start();
@@ -68,11 +85,12 @@ export class Ship {
     const pts = traj.points;
     if (!pts || pts.length === 0) {
       this.moving = false;
+      this.activePriority = 0;
       return;
     }
+
     const segCount = pts.length;
     const segDur = Math.max(1, Math.floor(traj.speed / segCount));
-    this.ship.position.set(this.pos.x, this.pos.y);
 
     await runSegment(pts[0], segDur);
     for (let i = 0; i < pts.length - 1; i++) {
@@ -80,7 +98,9 @@ export class Ship {
     }
 
     this.moving = false;
+    this.activePriority = 0;
   }
+
   private updateShip() {
     this.ship.clear();
 
