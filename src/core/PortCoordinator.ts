@@ -14,11 +14,12 @@ import {
   SCREEN_W,
   SHIP_WIDTH,
   START_PORT_Y,
-  SPAWN_INTERVAL,
   START_PORT_X,
   SHIP_MOVE_DURATION,
   SHIP_QUEUE_SPEED,
 } from "./constans";
+
+import { startRandomLoop } from "./utils";
 
 export class PortController {
   private docs: Dock[] = [];
@@ -51,25 +52,20 @@ export class PortController {
   }
 
   private startSpawnLoop() {
-    this.spawnTimerId = window.setInterval(
-      () => this.spawnOnce(),
-      SPAWN_INTERVAL,
-    );
+    startRandomLoop(() => this.spawnOnce());
   }
 
   private async dispatchExit(doc: Dock) {
     const shipId = doc.getShipId();
     if (!shipId) return;
-
-    doc.setShipId(null);
     doc.setIsShipReady(false);
-
     const routeToExit = doc.getRoute().slice().reverse();
     await this.shipService.moveShip(
       shipId,
       [...routeToExit, { x: START_PORT_X + SHIP_WIDTH, y: START_PORT_Y }],
       SHIP_MOVE_DURATION,
     );
+    doc.setShipId(null);
 
     this.trigger();
     this.shipService
@@ -85,10 +81,8 @@ export class PortController {
     if (this.entranceBusy) return false;
     const hasEmptyShips = this.emptyShipQueueController.getSlots().length > 0;
     const hasCargoShips = this.cargoShipQueueController.getSlots().length > 0;
-
     const dock = pickDockForEnter(emptyDocs, hasEmptyShips, hasCargoShips);
     if (!dock) return false;
-
     const queue = pickQueueForDock(
       dock,
       this.emptyShipQueueController,
@@ -96,22 +90,21 @@ export class PortController {
     );
     const res = queue.dequeueWithExit();
     if (!res) return false;
-
-    dock.setShipId(res.shipId);
     this.entranceBusy = true;
-    this.shipService
+    await this.shipService
       .moveShip(res.shipId, [...dock.getRoute()], SHIP_MOVE_DURATION)
       .then(() => {
         this.entranceBusy = false;
-
+        dock.setShipId(res.shipId);
+        this.trigger();
+        this.applyQueueUpdates(queue.updateQueue());
         dock.startLoading(
           () => this.shipService.toggleCargo(res.shipId),
           () => this.trigger(),
         );
       });
-    this.trigger();
-    this.applyQueueUpdates(queue.updateQueue());
-    return false;
+
+    return true;
   }
 
   private async spawnOnce() {
@@ -168,6 +161,7 @@ export class PortController {
     }
 
     this.running = false;
+
     if (this.pending) {
       return this.run();
     }
@@ -181,8 +175,10 @@ export class PortController {
     }
 
     const emptyDocs = this.getEmptyDocs();
-    if (!emptyDocs.length) return false;
+    if (emptyDocs.length) {
+      return await this.dispatchEnter(emptyDocs);
+    }
 
-    return await this.dispatchEnter(emptyDocs);
+    return false;
   }
 }
